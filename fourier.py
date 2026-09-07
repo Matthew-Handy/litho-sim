@@ -91,5 +91,3 @@ if __name__ == "__main__":
     show_spectrum(spectrum(line_space(X, 45)), FX, "Spectrum: 45nm half-pitch grating")
     sinc_check(90.0)
     order_check(45.0)
-
-
