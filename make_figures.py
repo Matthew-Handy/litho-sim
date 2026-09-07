@@ -14,8 +14,9 @@ from mask import make_grid, single_line, line_space, N
 from fourier import freq_grid, spectrum
 from optics import aerial_image, WAVELENGTH, NA
 from resolution import min_half_pitch
-from process_window import (cd_matrix, longest_in_spec,
-                            TARGET_CD, TOLERANCE)
+from process_window import (cd_matrix, longest_in_spec, TARGET_CD, TOLERANCE)
+from illumination import best_sigma, IMMERSION_NA, IMMERSION_N
+from metrics import contrast
 
 OUT = "figures"
 os.makedirs(OUT, exist_ok=True)
@@ -138,10 +139,32 @@ def fig_resolution_vs_na():
     ax.grid(alpha=0.3)
     save(fig, "resolution_vs_na.png")
 
+def fig_off_axis():
+    hp = 45.0
+    m = line_space(X, hp)
+    s = best_sigma(2 * hp, WAVELENGTH, IMMERSION_NA)
+    on = aerial_image(m, na=IMMERSION_NA, n_medium=IMMERSION_N)
+    off = aerial_image(m, na=IMMERSION_NA, n_medium=IMMERSION_N, sigma_x=s)
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(X[row, :], m[row, :], "k--", lw=1, alpha=0.4, label="mask")
+    ax.plot(X[row, :], on[row, :],
+            label=f"on-axis  (contrast {contrast(on):.3f})")
+    ax.plot(X[row, :], off[row, :],
+            label=f"off-axis, sigma = {s:.2f}  (contrast {contrast(off):.3f})")
+    ax.set_xlim(-300, 300)
+    ax.set_xlabel("x (nm)")
+    ax.set_ylabel("intensity")
+    ax.set_title("45 nm half-pitch, NA 1.35: off-axis illumination "
+                 "beats the coherent limit")
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    save(fig, "off_axis.png")
 
 if __name__ == "__main__":
     fig_mask_vs_aerial()
     fig_sinc_validation()
     fig_focus_sweep()
+    fig_off_axis()
     fig_process()
     fig_resolution_vs_na()      # kept for last since slow

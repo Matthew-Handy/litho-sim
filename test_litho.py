@@ -94,3 +94,16 @@ def test_resolution_never_beats_the_diffraction_limit():
     for na in (0.60, 0.93, 1.35):
         measured = min_half_pitch(X, WAVELENGTH, na)
         assert measured >= WAVELENGTH / (2 * na) - PIXEL
+
+
+def test_off_axis_beats_the_coherent_limit():
+    """45 nm half-pitch fails on-axis at NA 1.35 but prints with a tilt."""
+    from illumination import best_sigma, IMMERSION_NA, IMMERSION_N
+    hp = 45.0
+    m = line_space(X, hp)
+    s = best_sigma(2 * hp, WAVELENGTH, IMMERSION_NA)
+    on = contrast(aerial_image(m, na=IMMERSION_NA, n_medium=IMMERSION_N))
+    off = contrast(aerial_image(m, na=IMMERSION_NA, n_medium=IMMERSION_N,
+                                sigma_x=s))
+    assert on < 0.2
+    assert off > 0.8

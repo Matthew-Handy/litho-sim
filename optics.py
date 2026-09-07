@@ -30,10 +30,20 @@ def pupil(FX, FY, wavelength=WAVELENGTH, na=NA, focus=0.0, n_medium=1.0):
 
 
 #image chain
-def aerial_image(mask, wavelength=WAVELENGTH, na=NA, focus=0.0, n=N, pixel=PIXEL, n_medium=1.0):
-    """Coherent aerial image at a given focus offset (nm)."""
+def aerial_image(mask, wavelength=WAVELENGTH, na=NA, focus=0.0, n=N, pixel=PIXEL, n_medium=1.0, sigma_x=0.0, sigma_y=0.0):
+    """Coherent aerial image.
+
+    sigma_x, sigma_y give the illumination angle as a fraction of the pupil
+    radius: 0.0 is on-axis, 1.0 sits exactly at the pupil edge.
+    """
     FX, FY = freq_grid(n, pixel)
-    F = spectrum(mask)
+    X, Y = make_grid(n, pixel)
+
+    f_ill_x = sigma_x * na / wavelength
+    f_ill_y = sigma_y * na / wavelength
+    tilted = mask * np.exp(2j * np.pi * (f_ill_x * X + f_ill_y * Y))
+
+    F = spectrum(tilted)
     P = pupil(FX, FY, wavelength, na, focus, n_medium)
     E = np.fft.ifft2(np.fft.ifftshift(F * P))
     return np.abs(E) ** 2
