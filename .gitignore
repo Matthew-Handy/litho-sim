@@ -1,4 +1,4 @@
 .venv/
-__/
-*.png
-.pytest_cahce/
+__pycache__/
+.pytest_cache/
+.DS_Store
