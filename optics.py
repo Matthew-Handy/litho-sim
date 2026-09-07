@@ -14,19 +14,28 @@ NA = 0.93
 
 
 #the lens
-def pupil(FX, FY, wavelength=WAVELENGTH, na=NA):
-    """Circular low-pass filter : 1 inside the lens acceptance, 0 outside"""
+def defocus_phase(FX, FY, focus=0.0, wavelength=WAVELENGTH, n_medium=1.0):
+    """Phase error from placing the wafer `focus` nm away from best focus."""
+    sin2 = (FX**2 + FY**2) * (wavelength / n_medium)**2
+    sin2 = np.clip(sin2, 0.0, 1.0)          # keeps sqrt real outside pupil
+    cos_theta = np.sqrt(1.0 - sin2)
+    return (2 * np.pi * n_medium * focus / wavelength) * (1.0 - cos_theta)
+
+def pupil(FX, FY, wavelength=WAVELENGTH, na=NA, focus=0.0, n_medium=1.0):
+    """Complex pupil: a hard circular aperture times a defocus phase."""
     f_max = na / wavelength
-    return (np.sqrt(FX**2 + FY**2) <= f_max).astype(float)
+    aperture = (np.sqrt(FX**2 + FY**2) <= f_max).astype(float)
+    phase = defocus_phase(FX, FY, focus, wavelength, n_medium)
+    return aperture * np.exp(1j * phase)
 
 
 #image chain
-def aerial_image(mask, wavelength=WAVELENGTH, na=NA, n=N, pixel=PIXEL):
-    """Coherent aerial image: mask -> spectrum -> pupil -> back -> intensity"""
+def aerial_image(mask, wavelength=WAVELENGTH, na=NA, focus=0.0, n=N, pixel=PIXEL, n_medium=1.0):
+    """Coherent aerial image at a given focus offset (nm)."""
     FX, FY = freq_grid(n, pixel)
-    F = spectrum(mask)      #centered spectrum
-    P = pupil(FX, FY, wavelength, na)
-    E = np.fft.ifft2(np.fft.ifftshift(F * P))       #undo shift then invert
+    F = spectrum(mask)
+    P = pupil(FX, FY, wavelength, na, focus, n_medium)
+    E = np.fft.ifft2(np.fft.ifftshift(F * P))
     return np.abs(E) ** 2
 
 
@@ -56,6 +65,22 @@ def compare_cut(mask, I, X, title="", zoom=400):
     ax.grid(alpha=0.3)
     plt.show()
 
+def focus_sweep(mask, X, focus_list=(0, 60, 119, 180, 238), title="", zoom=500):
+    """Overlay aerial images taken at several focus offsets."""
+    row = N // 2
+    x = X[row, :]
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(x, mask[row, :], "k--", lw=1, alpha=0.5, label="mask")
+    for z in focus_list:
+        I = aerial_image(mask, focus=z)
+        ax.plot(x, I[row, :], label=f"focus = {z:.0f} nm")
+    ax.set_xlim(-zoom, zoom)
+    ax.set_xlabel("x (nm)")
+    ax.set_ylabel("intensity")
+    ax.set_title(title)
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    plt.show()
 
 if __name__ == "__main__":
     X, Y = make_grid()
@@ -78,5 +103,8 @@ if __name__ == "__main__":
     #grating coarse enough to live
     g2 = line_space(X, 120)
     compare_cut(g2, aerial_image(g2), X, "120 nm half-pitch grating", zoom=700)
+
+    focus_sweep(line_space(X, 120), X, title="120 nm half-pitch through focus", zoom=500)
+    focus_sweep(single_line(X, 90), X, title="90 nm isolated line through focus", zoom=400)
 
 
