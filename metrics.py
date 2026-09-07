@@ -109,6 +109,3 @@ if __name__ == "__main__":
     print("\ncontrast, 128 nm half pitch:")
     print("  best focus:  ", round(contrast(aerial_image(g)), 3))
     print("  140.7  nm defocus:", round(contrast(aerial_image(g, focus=140.7)), 3))
-
-
-
