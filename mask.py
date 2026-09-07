@@ -22,7 +22,7 @@ def make_grid(n=N , pixel=PIXEL):
 #mask shapes
 def single_line(X,width):
   """clear line of given width (nm) running along y"""
-  return (np.abs(X) <= width / 2).astype(float)
+  return ((X >= -width / 2) & (X < width / 2)).astype(float)
 
 def line_space(X, half_pitch):
   """repeating equal lines && spaces. half_pitch = line width = space width"""
@@ -31,7 +31,12 @@ def line_space(X, half_pitch):
 
 def contact_hole(X, Y, size):
     """Square opening of the given side length (nm)."""
-    return ((np.abs(X) <= size / 2) & (np.abs(Y) <= size / 2)).astype(float)
+    return ((X >= -size / 2) & (X < size / 2) & (Y >= -size / 2) & (Y < size / 2)).astype(float)
+
+def measured_width(mask, pixel=PIXEL):
+   """Actual clear width along middle row in nm"""
+   middle = mask[mask.shape[0] // 2, :]
+   return middle.sum() * pixel
 
 
 #display helper
@@ -51,4 +56,5 @@ if __name__ == "__main__":
    show(single_line(X, 90), X, "Isolated 90nm line")
    show(line_space(X,45), X, "45nm half-pitch lines/spaces")
    show(contact_hole(X, Y, 80), X, "80 nm contact hole")
-
+   print("single_line(90) actual width:", measured_width(single_line(X, 90)), "nm")
+   print("contact_hole(80) actual width:", measured_width(contact_hole(X, Y, 80)), "nm")
